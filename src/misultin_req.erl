@@ -147,40 +147,48 @@ delete_cookie(Key, _ReqT) ->
 
 % Formats a 200 response.
 -spec ok(Template::list() | binary() | iolist(), reqt()) -> term().
--spec ok(Headers::http_headers(), Template::list() | binary() | iolist(), reqt()) -> term().
--spec ok(Headers::http_headers(), Template::list(), Vars::[term()], reqt()) -> term().
 ok(Template, ReqT) ->
 	ok([], Template, ReqT).
+
+-spec ok(Headers::http_headers(), Template::list() | binary() | iolist(), reqt()) -> term().
 ok(Headers, Template, ReqT) ->
 	respond(200, Headers, Template, ReqT).
+
+-spec ok(Headers::http_headers(), Template::list(), Vars::[term()], reqt()) -> term().
 ok(Headers, Template, Vars, ReqT) ->
 	respond(200, Headers, Template, Vars, ReqT).
 
 % Formats a response.
 -spec respond(HttpCode::non_neg_integer(), reqt()) -> term().
--spec respond(HttpCode::non_neg_integer(), Template::list() | binary() | iolist(), reqt()) -> term().
--spec respond(HttpCode::non_neg_integer(), Headers::http_headers(), Template::list() | binary() | iolist(), reqt()) -> term().
--spec respond(HttpCode::non_neg_integer(), Headers::http_headers(), Template::list(), Vars::[term()], reqt()) -> term().
 respond(HttpCode, ReqT) ->
 	respond(HttpCode, [], [], ReqT).
+
+-spec respond(HttpCode::non_neg_integer(), Template::list() | binary() | iolist(), reqt()) -> term().
 respond(HttpCode, Template, ReqT) ->
 	respond(HttpCode, [], Template, ReqT).
+
+-spec respond(HttpCode::non_neg_integer(), Headers::http_headers(), Template::list() | binary() | iolist(), reqt()) -> term().
 respond(HttpCode, Headers, Template, {misultin_req, _Req, SocketPid}) ->
 	SocketPid ! {response, HttpCode, Headers, Template}.
+
+-spec respond(HttpCode::non_neg_integer(), Headers::http_headers(), Template::list(), Vars::[term()], reqt()) -> term().
 respond(HttpCode, Headers, Template, Vars, {misultin_req, _Req, SocketPid}) when is_list(Template) =:= true ->
 	SocketPid ! {response, HttpCode, Headers, io_lib:format(Template, Vars)}.
 
 % Allow to add already formatted headers, untouched
 -spec raw_headers_respond(Body::binary(), reqt()) -> term().
--spec raw_headers_respond(HeadersStr::string(), Body::binary(), reqt()) -> term().
--spec raw_headers_respond(HttpCode::non_neg_integer(), HeadersStr::string(), Body::binary(), reqt()) -> term().
--spec raw_headers_respond(HttpCode::non_neg_integer(), Headers::http_headers(), HeadersStr::string(), Body::binary(), reqt()) -> term().
 raw_headers_respond(Body, ReqT) ->
 	raw_headers_respond(200, [], [], Body, ReqT).
+
+-spec raw_headers_respond(HeadersStr::string(), Body::binary(), reqt()) -> term().
 raw_headers_respond(HeadersStr, Body, ReqT) ->
 	raw_headers_respond(200, [], HeadersStr, Body, ReqT).
+
+-spec raw_headers_respond(HttpCode::non_neg_integer(), HeadersStr::string(), Body::binary(), reqt()) -> term().
 raw_headers_respond(HttpCode, HeadersStr, Body, ReqT) ->
 	raw_headers_respond(HttpCode, [], HeadersStr, Body, ReqT).
+
+-spec raw_headers_respond(HttpCode::non_neg_integer(), Headers::http_headers(), HeadersStr::string(), Body::binary(), reqt()) -> term().
 raw_headers_respond(HttpCode, Headers, HeadersStr, Body, {misultin_req, _Req, SocketPid}) ->
 	SocketPid ! {response, HttpCode, {Headers, HeadersStr}, Body}.
 
@@ -202,15 +210,16 @@ options_set(_OptionTag, _OptionVal, {misultin_req, _Req, _SocketPid})	->
 -spec chunk
 	(head | done, reqt()) -> term();
 	(Template::string() | binary() | iolist(), reqt()) -> term().
--spec chunk
-	(head, Headers::http_headers(), reqt()) -> term();
-	(Template::string(), Vars::[term()], reqt()) -> term().
 chunk(head, ReqT) ->
 	chunk(head, [], ReqT);
 chunk(done, ReqT) ->
 	stream("0\r\n\r\n", ReqT);
 chunk(Template, ReqT) ->
 	chunk_send(Template, ReqT).
+
+-spec chunk
+	(head, Headers::http_headers(), reqt()) -> term();
+	(Template::string(), Vars::[term()], reqt()) -> term().
 chunk(head, Headers, ReqT) ->
 	% add Transfer-Encoding chunked header if needed
 	Headers0 = case misultin_utility:header_get_value('Transfer-Encoding', Headers) of
@@ -229,11 +238,6 @@ chunk_send(Data, ReqT) ->
 -spec stream
 	(close | head | {error, Reason::term()}, reqt()) -> term();
 	(Data::string() | binary() | iolist(), reqt()) -> term().
--spec stream
-	(head, Headers::http_headers(), reqt()) -> term();
-	(Template::string(), Vars::[term()], reqt()) -> term().
--spec stream
-	(head, HttpCode::non_neg_integer(), Headers::http_headers(), reqt()) -> term().
 stream(close, {misultin_req, _Req, SocketPid}) ->
 	SocketPid ! stream_close;
 stream(head, ReqT) ->
@@ -242,29 +246,38 @@ stream({error, Reason}, {misultin_req, _Req, SocketPid}) ->
 	SocketPid ! {stream_error, Reason};
 stream(Data, {misultin_req, _Req, SocketPid}) ->
 	catch SocketPid ! {stream_data, Data}.
+
+-spec stream
+	(head, Headers::http_headers(), reqt()) -> term();
+	(Template::string(), Vars::[term()], reqt()) -> term().
 stream(head, Headers, ReqT) ->
 	stream(head, 200, Headers, ReqT);
 stream(Template, Vars, {misultin_req, _Req, SocketPid}) when is_list(Template) =:= true ->
 	catch SocketPid ! {stream_data, io_lib:format(Template, Vars)}.
+
+-spec stream
+	(head, HttpCode::non_neg_integer(), Headers::http_headers(), reqt()) -> term().
 stream(head, HttpCode, Headers, {misultin_req, _Req, SocketPid}) ->
 	catch SocketPid ! {stream_head, HttpCode, Headers}.
 
 % Sends a file to the browser.
 -spec file
 	(FilePath::string(), reqt()) -> term().
+file(FilePath, ReqT) ->
+	file_send(FilePath, [], ReqT).
+
 -spec file
 	(attachment, FilePath::string(), reqt()) -> term();
 	(FilePath::string(), Headers::http_headers(), reqt()) -> term().
--spec file
-	(attachment, FilePath::string(), Headers::http_headers(), reqt()) -> term().
-file(FilePath, ReqT) ->
-	file_send(FilePath, [], ReqT).
 % Sends a file for download.
 file(attachment, FilePath, ReqT) ->
 	file(attachment, FilePath, [], ReqT);
 % Sends a file to the browser with the given headers.
 file(FilePath, Headers, ReqT) ->
 	file_send(FilePath, Headers, ReqT).
+
+-spec file
+	(attachment, FilePath::string(), Headers::http_headers(), reqt()) -> term().
 % Sends a file for download with the given headers.
 file(attachment, FilePath, Headers, ReqT) ->
 	% get filename
