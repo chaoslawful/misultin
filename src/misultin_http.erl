@@ -320,13 +320,14 @@ read_body_dispatch(#c{sock = Sock, socket_mode = SocketMode} = C, Req) ->
 
 % Read the post body according to headers
 -spec read_post_body(C::#c{}, Req::#req{}) -> {ok, Body::binary()} | {error, Reason::term()}.
--spec read_post_body(C::#c{}, Req::#req{}, Out::{error, no_valid_content_specs} | {ok, <<>>}) -> {ok, Body::binary()} | {error, Reason::term()}.
 read_post_body(C, #req{method = Method} = Req) when Method =:= 'POST'; Method =:= 'PUT' ->
 	% on PUT and POST require content length or transfer encoding headers
 	read_post_body(C, Req, {error, no_valid_content_specs});
 read_post_body(C, Req) ->
 	% on other requests just set body to <<>> in case of error
 	read_post_body(C, Req, {ok, <<>>}).
+
+-spec read_post_body(C::#c{}, Req::#req{}, Out::{error, no_valid_content_specs} | {ok, <<>>}) -> {ok, Body::binary()} | {error, Reason::term()}.
 read_post_body(C, #req{content_length = ContentLength} = Req, NoContentNoChunkOutput) ->
 	case ContentLength of
 		undefined ->
@@ -373,10 +374,10 @@ i_read_post_body(#c{sock = Sock, socket_mode = SocketMode, recv_timeout = RecvTi
 
 % Read body chunks
 -spec read_post_body_chunk(C::#c{}) -> {ok, Body::binary()} | {error, Reason::term()}.
--spec read_post_body_chunk_headline(C::#c{}, Acc::binary()) -> {ok, Body::binary()} | {error, Reason::term()}.
--spec read_post_body_chunk_content(C::#c{}, Acc::binary(), Len::non_neg_integer()) -> {ok, Body::binary()} | {error, Reason::term()}.
 read_post_body_chunk(C) ->
 	read_post_body_chunk_headline(C, <<>>).
+
+-spec read_post_body_chunk_headline(C::#c{}, Acc::binary()) -> {ok, Body::binary()} | {error, Reason::term()}.
 read_post_body_chunk_headline(#c{post_max_size = PostMaxSize}, Acc) when size(Acc) > PostMaxSize ->
 	?LOG_DEBUG("total size of chunked parts of ~p bytes exceed limit of ~p bytes", [size(Acc), PostMaxSize]),
 	{error, post_max_size};
@@ -396,6 +397,8 @@ read_post_body_chunk_headline(#c{sock = Sock, socket_mode = SocketMode, recv_tim
 		Other ->
 			{error, Other}
 	end.
+
+-spec read_post_body_chunk_content(C::#c{}, Acc::binary(), Len::non_neg_integer()) -> {ok, Body::binary()} | {error, Reason::term()}.
 read_post_body_chunk_content(#c{sock = Sock, socket_mode = SocketMode, recv_timeout = RecvTimeout} = C, Acc, Len) ->
 	?LOG_DEBUG("receiving a chunk of ~p bytes", [Len]),
 	misultin_socket:setopts(Sock, [{packet, raw}, {active, false}], SocketMode),
