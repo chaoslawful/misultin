@@ -153,9 +153,10 @@ request(#c{sock = Sock, socket_mode = SocketMode, recv_timeout = RecvTimeout, ge
 
 % HEADERS: collect HTTP headers. After the end of header marker transition to body state.
 -spec headers(C::#c{}, Req::#req{}, H::http_headers()) -> ok | ignored | ssl_closed | tcp_closed | true.
--spec headers(C::#c{}, Req::#req{}, H::http_headers(), HCount::non_neg_integer()) -> ok | ignored | ssl_closed | tcp_closed | true.
 headers(C, Req, H) ->
 	headers(C, Req, H, 0).
+
+-spec headers(C::#c{}, Req::#req{}, H::http_headers(), HCount::non_neg_integer()) -> ok | ignored | ssl_closed | tcp_closed | true.
 headers(#c{sock = Sock, socket_mode = SocketMode} = C, Req, _H, ?MAX_HEADERS_COUNT) ->
 	?LOG_DEBUG("too many headers sent, bad request",[]),
 	misultin_socket:send(Sock, build_error_message(400, close), SocketMode),

@@ -133,9 +133,10 @@ get_cookie_value(CookieTag, Cookies, _ReqT) ->
 
 % set cookie
 -spec set_cookie(Key::string(), Value::string(), reqt()) -> {http_header(), string()}.
--spec set_cookie(Key::string(), Value::string(), Options::cookies_options(), reqt()) -> {http_header(), string()}.
 set_cookie(Key, Value, _ReqT) ->
 	set_cookie(Key, Value, [], _ReqT).
+
+-spec set_cookie(Key::string(), Value::string(), Options::cookies_options(), reqt()) -> {http_header(), string()}.
 set_cookie(Key, Value, Options, _ReqT) ->
 	misultin_cookies:set_cookie(Key, Value, Options).
 
